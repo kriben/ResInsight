@@ -92,22 +92,58 @@ void RiaGrpcServiceInterface::copyPdmObjectFromCafToRips( const caf::PdmObjectHa
     for ( auto field : fields )
     {
         auto pdmValueField = dynamic_cast<const caf::PdmValueField*>( field );
-        if ( pdmValueField )
+        if ( !pdmValueField ) continue;
+
+        auto ricfHandle = field->template capability<caf::PdmAbstractFieldScriptingCapability>();
+        if ( !ricfHandle ) continue;
+
+        auto pdmProxyField = dynamic_cast<const caf::PdmProxyFieldHandle*>( field );
+        if ( pdmProxyField && pdmProxyField->isStreamingField() ) continue;
+
+        std::string          key = ricfHandle->scriptFieldName().toStdString();
+        rips::PdmParameterValue paramValue;
+
+        if ( !ricfHandle->enumScriptTexts().empty() )
         {
-            QString keyword    = pdmValueField->keyword();
-            auto    ricfHandle = field->template capability<caf::PdmAbstractFieldScriptingCapability>();
-            if ( ricfHandle != nullptr )
+            // Enum fields: serialize as text representation
+            QString     text;
+            QTextStream outStream( &text );
+            ricfHandle->readFromField( outStream, false );
+            paramValue.set_string_value( text.toStdString() );
+        }
+        else
+        {
+            QVariant qvar = pdmValueField->toQVariant();
+            switch ( qvar.typeId() )
             {
-                auto pdmProxyField = dynamic_cast<const caf::PdmProxyFieldHandle*>( field );
-                if ( !( pdmProxyField && pdmProxyField->isStreamingField() ) )
+                case QMetaType::Bool:
+                    paramValue.set_bool_value( qvar.toBool() );
+                    break;
+                case QMetaType::Int:
+                    paramValue.set_int_value( qvar.toInt() );
+                    break;
+                case QMetaType::UInt:
+                    paramValue.set_uint_value( qvar.toUInt() );
+                    break;
+                case QMetaType::Float:
+                    paramValue.set_float_value( qvar.toFloat() );
+                    break;
+                case QMetaType::Double:
+                    paramValue.set_double_value( qvar.toDouble() );
+                    break;
+                default:
                 {
+                    // Fallback: string serialization for compound/unknown types
                     QString     text;
                     QTextStream outStream( &text );
                     ricfHandle->readFromField( outStream, false );
-                    ( *parametersMap )[ricfHandle->scriptFieldName().toStdString()] = text.toStdString();
+                    paramValue.set_string_value( text.toStdString() );
+                    break;
                 }
             }
         }
+
+        ( *parametersMap )[key] = paramValue;
     }
 }
 
@@ -161,7 +197,33 @@ std::expected<void, QString> RiaGrpcServiceInterface::copyPdmObjectFromRipsToCaf
     {
         for ( const auto& p : parametersMap )
         {
-            qDebug() << QString::fromStdString( p.first ) << " : " << QString::fromStdString( p.second );
+            const auto& paramValue = p.second;
+            QString     valueStr;
+            switch ( paramValue.value_case() )
+            {
+                case rips::PdmParameterValue::kBoolValue:
+                    valueStr = paramValue.bool_value() ? "true" : "false";
+                    break;
+                case rips::PdmParameterValue::kIntValue:
+                    valueStr = QString::number( paramValue.int_value() );
+                    break;
+                case rips::PdmParameterValue::kUintValue:
+                    valueStr = QString::number( paramValue.uint_value() );
+                    break;
+                case rips::PdmParameterValue::kFloatValue:
+                    valueStr = QString::number( paramValue.float_value() );
+                    break;
+                case rips::PdmParameterValue::kDoubleValue:
+                    valueStr = QString::number( paramValue.double_value() );
+                    break;
+                case rips::PdmParameterValue::kStringValue:
+                    valueStr = QString::fromStdString( paramValue.string_value() );
+                    break;
+                default:
+                    valueStr = "(array or unset)";
+                    break;
+            }
+            qDebug() << QString::fromStdString( p.first ) << " : " << valueStr;
         }
     }
 
@@ -196,19 +258,20 @@ std::expected<void, QString> RiaGrpcServiceInterface::copyPdmObjectFromRipsToCaf
             QString keyword = scriptability->scriptFieldName();
 
             // Skip if parameter not provided (don't update field)
-            if ( parametersMap.find( keyword.toStdString() ) == parametersMap.end() )
+            auto it = parametersMap.find( keyword.toStdString() );
+            if ( it == parametersMap.end() )
             {
                 continue;
             }
 
-            QString value = QString::fromStdString( parametersMap[keyword.toStdString()] );
+            const rips::PdmParameterValue& paramValue = it->second;
 
             QVariant                 oldValue, newValue;
             caf::PdmScriptIOMessages messages;
             messages.currentCommand  = "Assign value to field " + keyword;
-            messages.currentArgument = value;
+            messages.currentArgument = keyword;
 
-            auto result = assignFieldValue( value, field, &oldValue, &newValue, &messages );
+            auto result = assignFieldValue( paramValue, field, &oldValue, &newValue, &messages );
 
             if ( !result )
             {
@@ -326,6 +389,81 @@ std::expected<void, QString> RiaGrpcServiceInterface::assignFieldValue( const QS
 
     // Success - value is valid and set
     return {};
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+std::expected<void, QString> RiaGrpcServiceInterface::assignFieldValue( const rips::PdmParameterValue& paramValue,
+                                                                        caf::PdmFieldHandle*           field,
+                                                                        QVariant*                      oldValue,
+                                                                        QVariant*                      newValue,
+                                                                        caf::PdmScriptIOMessages*      messages )
+{
+    CAF_ASSERT( oldValue && newValue );
+
+    auto scriptability = field->template capability<caf::PdmAbstractFieldScriptingCapability>();
+    if ( !field || !scriptability || !scriptability->isIOWriteable() )
+    {
+        return {};
+    }
+
+    auto* valueField = dynamic_cast<caf::PdmValueField*>( field );
+
+    // Convert typed protobuf value to string representation for writeToField validation.
+    // This preserves the existing strict type checking (e.g., rejecting int 1 for bool fields,
+    // float 0.99 for int fields) while still benefiting from typed transport.
+    QString stringValue;
+    switch ( paramValue.value_case() )
+    {
+        case rips::PdmParameterValue::kBoolValue:
+            stringValue = paramValue.bool_value() ? "true" : "false";
+            break;
+        case rips::PdmParameterValue::kIntValue:
+            stringValue = QString::number( paramValue.int_value() );
+            break;
+        case rips::PdmParameterValue::kUintValue:
+            stringValue = QString::number( paramValue.uint_value() );
+            break;
+        case rips::PdmParameterValue::kFloatValue:
+            stringValue = QString::number( paramValue.float_value(), 'g', 15 );
+            break;
+        case rips::PdmParameterValue::kDoubleValue:
+            stringValue = QString::number( paramValue.double_value(), 'g', 15 );
+            break;
+        case rips::PdmParameterValue::kStringValue:
+            stringValue = QString::fromStdString( paramValue.string_value() );
+            break;
+        case rips::PdmParameterValue::kIntArray:
+        {
+            QStringList items;
+            for ( int v : paramValue.int_array().data() )
+                items.append( QString::number( v ) );
+            stringValue = "[" + items.join( ", " ) + "]";
+            break;
+        }
+        case rips::PdmParameterValue::kDoubleArray:
+        {
+            QStringList items;
+            for ( double v : paramValue.double_array().data() )
+                items.append( QString::number( v, 'g', 15 ) );
+            stringValue = "[" + items.join( ", " ) + "]";
+            break;
+        }
+        case rips::PdmParameterValue::kStringArray:
+        {
+            QStringList items;
+            for ( const auto& v : paramValue.string_array().data() )
+                items.append( QString::fromStdString( v ) );
+            stringValue = "[" + items.join( ", " ) + "]";
+            break;
+        }
+        default:
+            return std::unexpected( QString( "Unknown parameter value type" ) );
+    }
+
+    messages->currentArgument = stringValue;
+    return assignFieldValue( stringValue, field, oldValue, newValue, messages );
 }
 
 //--------------------------------------------------------------------------------------------------

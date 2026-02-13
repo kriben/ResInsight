@@ -199,46 +199,70 @@ class PdmObjectBase:
     Value = Union[bool, str, float, int, "ValueArray"]
     ValueArray = List[Value]
 
-    def __convert_from_grpc_value(self, value: str) -> Value:
-        if value.lower() == "false":
-            return False
-        if value.lower() == "true":
-            return True
-        try:
-            int_val = int(value)
-            return int_val
-        except ValueError:
-            try:
-                float_val = float(value)
-                return float_val
-            except ValueError:
-                # We may have a string. Strip internal start and end quotes
-                value = value.strip('"')
-                if self.__islist(value):
-                    return self.__makelist(value)
-                return value
+    @staticmethod
+    def __convert_from_param_value(param_value) -> Value:
+        """Convert a PdmParameterValue protobuf message to a Python value."""
+        which = param_value.WhichOneof("value")
+        if which == "bool_value":
+            return param_value.bool_value
+        if which == "int_value":
+            return param_value.int_value
+        if which == "uint_value":
+            return param_value.uint_value
+        if which == "float_value":
+            return param_value.float_value
+        if which == "double_value":
+            return param_value.double_value
+        if which == "string_value":
+            return param_value.string_value
+        if which == "int_array":
+            return list(param_value.int_array.data)
+        if which == "double_array":
+            return list(param_value.double_array.data)
+        if which == "string_array":
+            return list(param_value.string_array.data)
+        return None
 
-    def __convert_to_grpc_value(self, value: Any) -> str:
+    @staticmethod
+    def __to_param_value(value: Any) -> "PdmObject_pb2.PdmParameterValue":
+        """Convert a Python value to a PdmParameterValue protobuf message."""
+        pv = PdmObject_pb2.PdmParameterValue()
         if isinstance(value, bool):
-            if value:
-                return "true"
-            return "false"
-        if isinstance(value, PdmObjectBase):
-            return value.__class__.__name__ + ":" + str(value.address())
-        if isinstance(value, list):
-            list_of_values = []
-            for val in value:
-                list_of_values.append(self.__convert_to_grpc_value(val))
-            return "[" + ", ".join(list_of_values) + "]"
-        return str(value)
+            # Must check before int (bool is subclass of int)
+            pv.bool_value = value
+        elif isinstance(value, int):
+            pv.int_value = value
+        elif isinstance(value, float):
+            pv.double_value = value
+        elif isinstance(value, str):
+            pv.string_value = value
+        elif isinstance(value, PdmObjectBase):
+            pv.string_value = value.__class__.__name__ + ":" + str(value.address())
+        elif isinstance(value, list):
+            if len(value) == 0:
+                pv.string_value = "[]"
+            elif all(isinstance(v, int) and not isinstance(v, bool) for v in value):
+                pv.int_array.data[:] = value
+            elif all(
+                isinstance(v, (int, float)) and not isinstance(v, bool) for v in value
+            ):
+                pv.double_array.data[:] = [float(v) for v in value]
+            elif all(isinstance(v, str) for v in value):
+                pv.string_array.data[:] = value
+            else:
+                # Mixed/complex list - fall back to string
+                pv.string_value = "[" + ", ".join(str(v) for v in value) + "]"
+        else:
+            pv.string_value = str(value)
+        return pv
 
     def __get_grpc_value(self, camel_keyword: str) -> Value:
-        return self.__convert_from_grpc_value(
-            self._pb2_object.parameters[camel_keyword]
-        )
+        param_value = self._pb2_object.parameters[camel_keyword]
+        return self.__convert_from_param_value(param_value)
 
-    def __set_grpc_value(self, camel_keyword: str, value: str) -> None:
-        self._pb2_object.parameters[camel_keyword] = self.__convert_to_grpc_value(value)
+    def __set_grpc_value(self, camel_keyword: str, value: Any) -> None:
+        param_value = self.__to_param_value(value)
+        self._pb2_object.parameters[camel_keyword].CopyFrom(param_value)
 
     def set_value(self, snake_keyword: str, value: object) -> None:
         """Set the value associated with the provided keyword and updates ResInsight
@@ -251,30 +275,6 @@ class PdmObjectBase:
         """
         setattr(self, snake_keyword, value)
         self.update()
-
-    def __islist(self, value: str) -> bool:
-        return value.startswith("[") and value.endswith("]")
-
-    def __makelist(self, list_string: str) -> Value:
-        list_string = list_string.removeprefix("[")
-        list_string = list_string.removesuffix("]")
-        if not list_string:
-            # Return empty list if empty string. Otherwise, the split function will return ['']
-            return []
-
-        # Check if it's a nested list or single list
-        if "], [" in list_string:
-            # Nested list
-            # Split by ], [ to get each sublist
-            sublists = re.split(r"\], \[", list_string)
-            return [self.__makelist(sublist) for sublist in sublists]
-        else:
-            # Single list
-            strings = list_string.split(", ")
-            values = []
-            for string in strings:
-                values.append(self.__convert_from_grpc_value(string))
-            return values
 
     def __from_pb2_to_resinsight_classes(
         self,
@@ -471,8 +471,8 @@ class PdmObjectBase:
     def _call_pdm_method_void(self, method_name: str, **kwargs: Any) -> None:
         pb2_params = PdmObject_pb2.PdmObject(class_keyword=method_name)
         for key, value in kwargs.items():
-            pb2_params.parameters[snake_to_camel(key)] = self.__convert_to_grpc_value(
-                value
+            pb2_params.parameters[snake_to_camel(key)].CopyFrom(
+                self.__to_param_value(value)
             )
         request = PdmObject_pb2.PdmObjectMethodRequest(
             object=self._pb2_object, method=method_name, params=pb2_params
@@ -488,8 +488,8 @@ class PdmObjectBase:
     ) -> PdmObjectT:
         pb2_params = PdmObject_pb2.PdmObject(class_keyword=method_name)
         for key, value in kwargs.items():
-            pb2_params.parameters[snake_to_camel(key)] = self.__convert_to_grpc_value(
-                value
+            pb2_params.parameters[snake_to_camel(key)].CopyFrom(
+                self.__to_param_value(value)
             )
         request = PdmObject_pb2.PdmObjectMethodRequest(
             object=self._pb2_object, method=method_name, params=pb2_params
@@ -507,8 +507,8 @@ class PdmObjectBase:
     ) -> Optional[PdmObjectT]:
         pb2_params = PdmObject_pb2.PdmObject(class_keyword=method_name)
         for key, value in kwargs.items():
-            pb2_params.parameters[snake_to_camel(key)] = self.__convert_to_grpc_value(
-                value
+            pb2_params.parameters[snake_to_camel(key)].CopyFrom(
+                self.__to_param_value(value)
             )
         request = PdmObject_pb2.PdmObjectMethodRequest(
             object=self._pb2_object, method=method_name, params=pb2_params
@@ -556,7 +556,7 @@ class PdmObjectBase:
             # Restore Python attributes from the protobuf snapshot
             for camel_keyword in pb2_snapshot.parameters:
                 snake_keyword = camel_to_snake(camel_keyword)
-                value = self.__convert_from_grpc_value(
+                value = self.__convert_from_param_value(
                     pb2_snapshot.parameters[camel_keyword]
                 )
                 setattr(self, snake_keyword, value)

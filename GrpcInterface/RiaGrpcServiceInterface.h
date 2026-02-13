@@ -37,6 +37,7 @@ class PdmScriptIOMessages;
 namespace rips
 {
 class PdmObject;
+class PdmParameterValue;
 }
 
 class QString;
@@ -71,6 +72,12 @@ protected:
                                                           QVariant*                 oldValue,
                                                           QVariant*                 newValue,
                                                           caf::PdmScriptIOMessages* messages );
+
+    static std::expected<void, QString> assignFieldValue( const rips::PdmParameterValue& paramValue,
+                                                          caf::PdmFieldHandle*           field,
+                                                          QVariant*                      oldValue,
+                                                          QVariant*                      newValue,
+                                                          caf::PdmScriptIOMessages*      messages );
 };
 
 #include "cafFactory.h"

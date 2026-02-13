@@ -100,7 +100,7 @@ void RiaGrpcServiceInterface::copyPdmObjectFromCafToRips( const caf::PdmObjectHa
         auto pdmProxyField = dynamic_cast<const caf::PdmProxyFieldHandle*>( field );
         if ( pdmProxyField && pdmProxyField->isStreamingField() ) continue;
 
-        std::string          key = ricfHandle->scriptFieldName().toStdString();
+        std::string             key = ricfHandle->scriptFieldName().toStdString();
         rips::PdmParameterValue paramValue;
 
         if ( !ricfHandle->enumScriptTexts().empty() )

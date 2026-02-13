@@ -38,7 +38,7 @@ namespace rips
 {
 class PdmObject;
 class PdmParameterValue;
-}
+} // namespace rips
 
 class QString;
 class QVariant;

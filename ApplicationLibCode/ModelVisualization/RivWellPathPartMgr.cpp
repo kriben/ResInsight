@@ -597,10 +597,6 @@ void RivWellPathPartMgr::appendMswSegmentsToModel( cvf::ModelBasicList*         
     auto segmentCollection = completions->mswSegmentCollection();
     if ( !segmentCollection || !segmentCollection->hasSegments() ) return;
 
-    // Use top-level well path's MSW settings for visibility control
-    RimWellPath* topLevelWell = m_rimWellPath->topLevelWellPath();
-    if ( !topLevelWell ) topLevelWell = m_rimWellPath;
-
     RimWellPathCollection* wellPathCollection = this->wellPathCollection();
     if ( !wellPathCollection ) return;
 
@@ -672,8 +668,7 @@ void RivWellPathPartMgr::appendMswSegmentsToModel( cvf::ModelBasicList*         
             cvf::ref<RivObjectSourceInfo> objectSourceInfo = new RivObjectSourceInfo( const_cast<RimMswSegment*>( segment ) );
             for ( auto part : parts )
             {
-                part->setName(
-                    QString( "MSW Segment %1 (Branch %2)" ).arg( segment->segmentNumber() ).arg( segment->branchNumber() ).toStdString() );
+                part->setName( m_rimWellPath->name().toStdString() );
                 part->setSourceInfo( objectSourceInfo.p() );
                 model->addPart( part.p() );
             }

@@ -8,6 +8,8 @@ endif(MSVC)
 set(SOURCE_UNITTEST_FILES
     ${CMAKE_CURRENT_LIST_DIR}/cvfGeometryTools-Test.cpp
     ${CMAKE_CURRENT_LIST_DIR}/Ert-Test.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/RigModelPaddingSettings-Test.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/RigPadModel-Test.cpp
     ${CMAKE_CURRENT_LIST_DIR}/RigSimulationInputTool-Test.cpp
     ${CMAKE_CURRENT_LIST_DIR}/RigBoundingBoxIjk-Test.cpp
     ${CMAKE_CURRENT_LIST_DIR}/RifcCommandCore-Test.cpp
@@ -78,7 +80,7 @@ set(SOURCE_UNITTEST_FILES
     ${CMAKE_CURRENT_LIST_DIR}/RifColorLegendData-Test.cpp
     ${CMAKE_CURRENT_LIST_DIR}/RifRoffReader-Test.cpp
     ${CMAKE_CURRENT_LIST_DIR}/RifElasticPropertiesReader-Test.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/RiaStatisticsTools-Test.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/RigStatisticsTools-Test.cpp
     ${CMAKE_CURRENT_LIST_DIR}/RifStimPlanXmlReader-Test.cpp
     ${CMAKE_CURRENT_LIST_DIR}/RifThermalFractureReader-Test.cpp
     ${CMAKE_CURRENT_LIST_DIR}/RigWellPathGeometryExporter-Test.cpp
@@ -124,6 +126,9 @@ set(SOURCE_UNITTEST_FILES
     ${CMAKE_CURRENT_LIST_DIR}/RiaAngleUtils-Test.cpp
     ${CMAKE_CURRENT_LIST_DIR}/cafVecIjk-Test.cpp
     ${CMAKE_CURRENT_LIST_DIR}/RimSummaryCalculation-Test.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/RiaSummaryAddressCollectionTools-Test.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/RimMockSummaryCase.h
+    ${CMAKE_CURRENT_LIST_DIR}/RimMockSummaryCase-Test.cpp
 )
 
 if(RESINSIGHT_ENABLE_GRPC)

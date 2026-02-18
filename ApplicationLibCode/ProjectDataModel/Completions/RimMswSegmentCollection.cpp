@@ -104,21 +104,17 @@ void RimMswSegmentCollection::populateFromWelsegsData( std::vector<WelsegsRow> w
     // Sort segments by measured depth (length)
     std::sort( welsegsData.begin(), welsegsData.end(), []( const WelsegsRow& a, const WelsegsRow& b ) { return a.length < b.length; } );
 
-    // Create segments with computed start/end MD
+    // Assign segments data. Start/end measured depth is used for visualization in 2D plots by RimWellPathComponentInterface
     for ( size_t i = 0; i < welsegsData.size(); ++i )
     {
         const auto& row = welsegsData[i];
 
-        double startMD = row.length;
-        double endMD   = ( i + 1 < welsegsData.size() ) ? welsegsData[i + 1].length : wellTotalDepth;
-
-        // Skip if start >= end (invalid interval)
-        if ( startMD >= endMD ) continue;
+        double nextSegmentLength = ( i + 1 < welsegsData.size() ) ? welsegsData[i + 1].length : wellTotalDepth;
 
         double diameter = row.diameter.value_or( 0.1 ); // Default diameter if not specified
 
         auto* segment = new RimMswSegment();
-        segment->setSegmentData( row.segment1, row.branch, startMD, endMD, diameter );
+        segment->setSegmentData( row.segment1, row.branch, row.joinSegment, row.length, row.depth, nextSegmentLength, diameter );
         appendSegment( segment );
     }
 }
@@ -140,10 +136,19 @@ double RimMswSegmentCollection::referenceDiameter() const
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-void RimMswSegmentCollection::updateSegments( RimEclipseCase* eclipseCase )
+void RimMswSegmentCollection::updateSegments( RimWellPath* topLevelWell, RimEclipseCase* eclipseCase )
 {
-    // Clear existing segments before creating new ones
-    clearSegments();
+    if ( !topLevelWell )
+    {
+        RiaLogging::error( "Unable to update MSW segments: no top-level well path provided." );
+        return;
+    }
+
+    if ( !eclipseCase )
+    {
+        RiaLogging::error( "Unable to update MSW segments: no Eclipse case selected." );
+        return;
+    }
 
     auto scheduleRedraw = []()
     {
@@ -153,25 +158,12 @@ void RimMswSegmentCollection::updateSegments( RimEclipseCase* eclipseCase )
         }
     };
 
-    auto* wellPath = firstAncestorOrThisOfType<RimWellPath>();
-    if ( !wellPath )
-    {
-        RiaLogging::error( "Unable to update MSW segments: no well path found." );
-        scheduleRedraw();
-        return;
-    }
+    auto exportDate                             = RicWellPathExportCompletionDataFeatureImpl::exportDateForTimeStep( eclipseCase, 0 );
+    bool exportCompletionsAfterMainBoreSegments = true;
 
-    if ( !eclipseCase )
-    {
-        RiaLogging::error( "Unable to update MSW segments: no Eclipse case selected." );
-        scheduleRedraw();
-        return;
-    }
-
-    auto exportDate      = RicWellPathExportCompletionDataFeatureImpl::exportDateForTimeStep( eclipseCase, 0 );
     auto tableDataResult = RicWellPathExportMswTableData::extractSingleWellMswData( eclipseCase,
-                                                                                    wellPath,
-                                                                                    true,
+                                                                                    topLevelWell,
+                                                                                    exportCompletionsAfterMainBoreSegments,
                                                                                     RicWellPathExportMswTableData::CompletionType::ALL,
                                                                                     exportDate );
 

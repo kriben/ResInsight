@@ -21,6 +21,9 @@
 #include "RiaLogging.h"
 #include "RiaNncDefines.h"
 
+#include "RigModelPaddingSettings.h"
+#include "RigPadModel.h"
+
 #include "RifEclipseInputFileTools.h"
 #include "RifOpmDeckTools.h"
 #include "RifOpmFlowDeckFile.h"
@@ -152,6 +155,15 @@ std::expected<void, QString> RigSimulationInputTool::exportSimulationInput( RimE
         return result;
     }
 
+    // Apply model padding if enabled
+    if ( settings.paddingSettings().isEnabled() )
+    {
+        if ( auto result = applyModelPadding( deckFile, settings.paddingSettings() ); !result )
+        {
+            return result;
+        }
+    }
+
     // Remove SKIP keywords that were used as placeholders for filtered-out keywords
     deckFile.removeKeywords( "SKIP" );
 
@@ -191,28 +203,23 @@ std::expected<void, QString> RigSimulationInputTool::updateCornerPointGridInDeck
     auto keywords = deckFile.keywords( false );
 
     // Sector dimensions (after refinement)
-    std::vector<int> dimens = { static_cast<int>( gridAdapter.cellCountI() ),
-                                static_cast<int>( gridAdapter.cellCountJ() ),
-                                static_cast<int>( gridAdapter.cellCountK() ) };
+    int dimenNx = static_cast<int>( gridAdapter.cellCountI() );
+    int dimenNy = static_cast<int>( gridAdapter.cellCountJ() );
+    int dimenNz = static_cast<int>( gridAdapter.cellCountK() );
 
-    if ( !deckFile.replaceKeyword( "DIMENS", dimens ) )
+    if ( !deckFile.setDimens( dimenNx, dimenNy, dimenNz ) )
     {
         return std::unexpected( "Failed to replace DIMENS keyword in deck file" );
     }
 
     // SPECGRID has the same dimensions plus NUMRES and COORD_TYPE
-    // Format: NX NY NZ (use defaults for NUMRES (1) and  COORD_TYPE: 'F'=Cartesian)
     if ( std::find( keywords.begin(), keywords.end(), "SPECGRID" ) == keywords.end() )
     {
         Opm::DeckKeyword newKw( ( Opm::ParserKeywords::SPECGRID() ) );
         deckFile.addKeyword( "GRID", newKw );
     }
 
-    std::vector<int> specgrid = { static_cast<int>( gridAdapter.cellCountI() ),
-                                  static_cast<int>( gridAdapter.cellCountJ() ),
-                                  static_cast<int>( gridAdapter.cellCountK() ) };
-
-    if ( !deckFile.replaceKeyword( "SPECGRID", specgrid ) )
+    if ( !deckFile.setSpecgrid( dimenNx, dimenNy, dimenNz ) )
     {
         return std::unexpected( "Failed to replace SPECGRID keyword in deck file" );
     }
@@ -1781,4 +1788,13 @@ std::expected<void, QString> RigSimulationInputTool::exportEditNncKeyword( RimEc
     deckFile.replaceKeyword( "EDIT", editnncKw );
 
     return {};
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+std::expected<void, QString> RigSimulationInputTool::applyModelPadding( RifOpmFlowDeckFile&            deckFile,
+                                                                        const RigModelPaddingSettings& paddingSettings )
+{
+    return RigPadModel::extendGrid( deckFile, paddingSettings );
 }

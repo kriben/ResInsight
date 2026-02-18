@@ -254,12 +254,14 @@ bool RifOpmFlowDeckFile::loadDeck( std::string filename )
     {
         auto deck = Opm::Parser{}.parseFile( filename, internal::defaultParseContext(), errors );
 
+        m_deck     = std::make_unique<Opm::Deck>( deck );
         m_fileDeck = std::make_unique<Opm::FileDeck>( deck );
 
         splitDatesIfNecessary();
     }
     catch ( ... )
     {
+        m_deck.reset();
         m_fileDeck.reset();
         return false;
     }
@@ -754,6 +756,52 @@ bool RifOpmFlowDeckFile::setWsegdims( int maxMSWells, int maxSegmentsPerWell, in
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
+bool RifOpmFlowDeckFile::setSpecgrid( int nx, int ny, int nz )
+{
+    using S = Opm::ParserKeywords::SPECGRID;
+    if ( m_fileDeck.get() == nullptr ) return false;
+    auto idx = m_fileDeck->find( S::keywordName );
+    if ( !idx.has_value() ) return false;
+
+    auto& oldkw = m_fileDeck->operator[]( idx.value() );
+
+    Opm::DeckKeyword newKw( Opm::ParserKeyword( oldkw.name() ) );
+    newKw.addRecord( Opm::DeckRecord{ { RifOpmDeckTools::item( S::NX::itemName, nx ),
+                                        RifOpmDeckTools::item( S::NY::itemName, ny ),
+                                        RifOpmDeckTools::item( S::NZ::itemName, nz ),
+                                        RifOpmDeckTools::item( S::NUMRES::itemName, 1 ),
+                                        RifOpmDeckTools::item( S::COORD_TYPE::itemName, std::string( "F" ) ) } } );
+
+    m_fileDeck->erase( idx.value() );
+    m_fileDeck->insert( idx.value(), newKw );
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+bool RifOpmFlowDeckFile::setDimens( int nx, int ny, int nz )
+{
+    using D = Opm::ParserKeywords::DIMENS;
+    if ( m_fileDeck.get() == nullptr ) return false;
+    auto idx = m_fileDeck->find( D::keywordName );
+    if ( !idx.has_value() ) return false;
+
+    auto& oldkw = m_fileDeck->operator[]( idx.value() );
+
+    Opm::DeckKeyword newKw( Opm::ParserKeyword( oldkw.name() ) );
+    newKw.addRecord( Opm::DeckRecord{ { RifOpmDeckTools::item( D::NX::itemName, nx ),
+                                        RifOpmDeckTools::item( D::NY::itemName, ny ),
+                                        RifOpmDeckTools::item( D::NZ::itemName, nz ) } } );
+
+    m_fileDeck->erase( idx.value() );
+    m_fileDeck->insert( idx.value(), newKw );
+    return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
 std::vector<int> RifOpmFlowDeckFile::regdims()
 {
     using R = Opm::ParserKeywords::REGDIMS;
@@ -1002,6 +1050,22 @@ bool RifOpmFlowDeckFile::addIncludeKeyword( std::string section, std::string key
 
     m_fileDeck->insert( insertIdx.value(), includeKw );
     return true;
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+Opm::FileDeck* RifOpmFlowDeckFile::fileDeck()
+{
+    return m_fileDeck.get();
+}
+
+//--------------------------------------------------------------------------------------------------
+///
+//--------------------------------------------------------------------------------------------------
+const Opm::Deck* RifOpmFlowDeckFile::deck() const
+{
+    return m_deck.get();
 }
 
 //--------------------------------------------------------------------------------------------------

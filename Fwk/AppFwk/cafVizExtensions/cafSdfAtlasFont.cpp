@@ -34,11 +34,11 @@
 //
 //##################################################################################################
 
-#include "cvfBase.h"
 #include "cafSdfAtlasFont.h"
-#include "cvfSdfFont.h"
-#include "cvfGlyph.h"
 #include "cafDroidSansData.h"
+#include "cvfBase.h"
+#include "cvfGlyph.h"
+#include "cvfSdfFont.h"
 
 namespace caf
 {

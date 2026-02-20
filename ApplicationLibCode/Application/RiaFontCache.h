@@ -18,9 +18,9 @@
 
 #pragma once
 
-#include "cafFixedAtlasFont.h"
 #include "cafFontTools.h"
 
+#include "cvfFont.h"
 #include "cvfObject.h"
 
 #include <map>
@@ -42,11 +42,11 @@ public:
     using FontSize     = caf::FontTools::FontSize;
     using FontSizeEnum = caf::FontTools::FontSizeEnum;
 
-    static cvf::ref<caf::FixedAtlasFont> getFont( FontSize fontSize );
-    static cvf::ref<caf::FixedAtlasFont> getFont( int pointSize );
-    static FontSize                      legacyEnumToPointSize( int enumValue );
-    static void                          clear();
+    static cvf::ref<cvf::Font> getFont( FontSize fontSize );
+    static cvf::ref<cvf::Font> getFont( int pointSize );
+    static FontSize            legacyEnumToPointSize( int enumValue );
+    static void                clear();
 
 private:
-    static std::map<caf::FixedAtlasFont::FontSize, cvf::ref<caf::FixedAtlasFont>> ms_fonts;
+    static std::map<int, cvf::ref<cvf::Font>> ms_fonts;
 };

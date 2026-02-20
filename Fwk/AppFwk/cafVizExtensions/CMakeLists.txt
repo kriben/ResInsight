@@ -43,6 +43,9 @@ add_library(
   cafCategoryMapper.h
   cafFixedAtlasFont.h
   cafFixedAtlasFont.cpp
+  cafSdfAtlasFont.h
+  cafSdfAtlasFont.cpp
+  cafDroidSansData.h
   cafTransparentWBRenderConfiguration.h
   cafTransparentWBRenderConfiguration.cpp
   cafLine.h
@@ -56,6 +59,8 @@ add_library(
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+find_package(Freetype REQUIRED)
+
 target_link_libraries(
   ${PROJECT_NAME}
   LibCore
@@ -63,6 +68,13 @@ target_link_libraries(
   LibViewing
   LibRender
   LibGuiQt
+  LibFreeType
+  Freetype::Freetype
   CommonCode
   ${QT_LIBRARIES}
+)
+
+target_include_directories(
+  ${PROJECT_NAME}
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../VizFwk/LibFreeType
 )

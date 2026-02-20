@@ -138,6 +138,7 @@ const char* ShaderSourceRepository::shaderIdentString(ShaderIdent shaderIdent)
         CVF_IDENT_HANDLE_CASE(fs_Void);
         CVF_IDENT_HANDLE_CASE(fs_FixedColorMagenta);
         CVF_IDENT_HANDLE_CASE(fs_Text);
+        CVF_IDENT_HANDLE_CASE(fs_TextSdf);
         CVF_IDENT_HANDLE_CASE(fs_VectorDrawer);
         CVF_IDENT_HANDLE_CASE(fs_CenterLitSpherePoints);
         CVF_IDENT_HANDLE_CASE(fs_ParticleTraceComets);
@@ -199,6 +200,7 @@ bool ShaderSourceRepository::rawShaderSource(ShaderIdent shaderIdent, CharArray*
         CVF_SOURCE_HANDLE_CASE(fs_Void);
         CVF_SOURCE_HANDLE_CASE(fs_FixedColorMagenta);
         CVF_SOURCE_HANDLE_CASE(fs_Text);
+        CVF_SOURCE_HANDLE_CASE(fs_TextSdf);
         CVF_SOURCE_HANDLE_CASE(fs_VectorDrawer);
         CVF_SOURCE_HANDLE_CASE(fs_CenterLitSpherePoints);
         CVF_SOURCE_HANDLE_CASE(fs_ParticleTraceComets);

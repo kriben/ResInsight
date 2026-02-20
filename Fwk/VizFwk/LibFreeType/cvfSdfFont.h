@@ -1,7 +1,7 @@
 //##################################################################################################
 //
 //   Custom Visualization Core library
-//   Copyright (C) 2011-2013 Ceetron AS
+//   Copyright (C) Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -38,35 +38,59 @@
 #pragma once
 
 #include "cvfObject.h"
+#include "cvfFont.h"
+#include "cvfArray.h"
 #include "cvfString.h"
-#include "cvfVector2.h"
 
+#include <map>
 
 namespace cvf {
 
 class Glyph;
+class TextureImage;
+class SdfFreeTypeInterface;
+
 
 //==================================================================================================
 //
-// Pure virtual font base class used to generate glyphs for a given character.
+// SDF (Signed Distance Field) font class.
+// Renders glyphs at a high resolution, generates SDF textures, and scales metrics to display size.
+// Produces crisp text at any zoom level from a single small texture per glyph.
 //
 //==================================================================================================
-class Font : public Object
+class SdfFont : public Font
 {
 public:
-    Font();
-    virtual ~Font();
+    SdfFont(uint renderSize = 64, uint sdfSize = 48, uint spread = 6);
+    virtual ~SdfFont();
 
-    virtual const String&   name() const = 0;
-    virtual ref<Glyph>      getGlyph(wchar_t character) = 0;
-    virtual uint            advance(wchar_t character, wchar_t nextCharacter) = 0;
-    virtual bool            isEmpty() = 0;
-    virtual bool            isSdfFont() const { return false; }
+    // Overridden pure virtual functions from Font
+    virtual const String& name() const;
+    virtual ref<Glyph>    getGlyph(wchar_t character);
+    virtual uint          advance(wchar_t character, wchar_t nextCharacter);
+    virtual bool          isEmpty();
+    virtual bool          isSdfFont() const { return true; }
 
-    float                   lineSpacing();
+    void setDisplaySize(uint pointSize);
 
-    Vec2ui                  textExtent(const String& text);        
+    // Load font
+    bool load(const String& path);
+    bool load(const ubyte* data, size_t numBytes);
 
+private:
+    ref<Glyph>      createSdfGlyph(wchar_t character);
+    ref<TextureImage> generateSdfFromBitmap(const TextureImage& bitmap, uint sdfWidth, uint sdfHeight);
+
+private:
+    typedef std::map<wchar_t, ref<Glyph> > MapType;
+
+    ref<SdfFreeTypeInterface> m_fontInterface;
+    MapType     m_atlasMap;
+    String      m_name;
+    uint        m_renderSize;   // FreeType rasterization size
+    uint        m_sdfSize;      // Output SDF texture size
+    uint        m_spread;       // Distance field spread in pixels
+    uint        m_displaySize;  // Logical display size (point size)
 };
 
 } // namespace cvf

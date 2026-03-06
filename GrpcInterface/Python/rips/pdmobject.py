@@ -284,7 +284,7 @@ class PdmObjectBase:
                 )
 
         return ()
-    
+
     def __unescape_string(self, value: str) -> str:
         result = []
         i = 0

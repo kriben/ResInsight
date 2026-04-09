@@ -39,43 +39,41 @@
 #include "cvfBase.h"
 #include "cvfMatrix4.h"
 
-#include "cafInternalPdmValueFieldSpecializations.h"
+#include "cafPdmFieldTraits.h"
 
 #include "cafPdmXmlMat4d.h"
 
 #include <QTextStream>
 
+// pdmToVariant/pdmFromVariant in namespace cvf so ADL finds them when called via caf::toVariant/
+// caf::fromVariant — ADL searches the argument's namespace (cvf) in addition to caf.
+namespace cvf
+{
+
+inline QVariant pdmToVariant( const Mat4d& value )
+{
+    QString     str;
+    QTextStream textStream( &str );
+    textStream << value;
+    return QVariant( str );
+}
+
+inline void pdmFromVariant( const QVariant& v, Mat4d& out )
+{
+    QString     str = v.toString();
+    QTextStream textStream( &str );
+    textStream >> out;
+}
+
+} // end namespace cvf
+
 namespace caf
 {
+
 template <>
-class PdmValueFieldSpecialization<cvf::Mat4d>
+struct PdmVariantEqualImpl<cvf::Mat4d>
 {
-public:
-    /// Convert the field value into a QVariant
-    static QVariant convert( const cvf::Mat4d& value )
-    {
-        QString str;
-
-        QTextStream textStream( &str );
-        textStream << value;
-
-        return QVariant( str );
-    }
-
-    /// Set the field value from a QVariant
-    static void setFromVariant( const QVariant& variantValue, cvf::Mat4d& value )
-    {
-        QString str = variantValue.toString();
-
-        QTextStream textStream( &str );
-
-        textStream >> value;
-    }
-
-    static bool isEqual( const QVariant& variantValue, const QVariant& variantValue2 )
-    {
-        return variantValue == variantValue2;
-    }
+    static bool equal( const QVariant& a, const QVariant& b ) { return a.toString() == b.toString(); }
 };
 
 } // end namespace caf

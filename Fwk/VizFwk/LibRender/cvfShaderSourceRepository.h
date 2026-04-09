@@ -88,6 +88,7 @@ public:
         fs_Void,
         fs_FixedColorMagenta,
         fs_Text,
+        fs_TextSdf,
         fs_VectorDrawer,
         fs_CenterLitSpherePoints,
         fs_ParticleTraceComets,

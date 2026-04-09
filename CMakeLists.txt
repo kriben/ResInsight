@@ -878,6 +878,8 @@ add_subdirectory(${VIZ_MODULES_FOLDER_NAME}/LibGeometry)
 add_subdirectory(${VIZ_MODULES_FOLDER_NAME}/LibRender)
 add_subdirectory(${VIZ_MODULES_FOLDER_NAME}/LibViewing)
 add_subdirectory(${VIZ_MODULES_FOLDER_NAME}/LibGuiQt)
+find_package(Freetype REQUIRED)
+add_subdirectory(${VIZ_MODULES_FOLDER_NAME}/LibFreeType)
 
 list(
   APPEND
@@ -887,6 +889,7 @@ list(
   LibRender
   LibGeometry
   LibCore
+  LibFreeType
 )
 
 if(MSVC)

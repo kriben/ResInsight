@@ -444,7 +444,12 @@ void TextDrawer::doRender2d(OpenGLContext* oglContext, const MatrixState& matrix
     }
     else
     {
-        ref<ShaderProgram> textShader = oglContext->resourceManager()->getLinkedTextShaderProgram(oglContext);
+        ref<ShaderProgram> textShader;
+        if (m_font->isSdfFont())
+            textShader = oglContext->resourceManager()->getLinkedSdfTextShaderProgram(oglContext);
+        else
+            textShader = oglContext->resourceManager()->getLinkedTextShaderProgram(oglContext);
+
         if (textShader->useProgram(oglContext))
         {
             textShader->clearUniformApplyTracking();
@@ -455,6 +460,12 @@ void TextDrawer::doRender2d(OpenGLContext* oglContext, const MatrixState& matrix
 
             UniformInt uniformTexture("u_texture2D", 0);
             textShader->applyUniform(oglContext, uniformTexture);
+
+            if (m_font->isSdfFont())
+            {
+                UniformFloat uniformSmoothing("u_sdfSmoothing", 0.1f);
+                textShader->applyUniform(oglContext, uniformSmoothing);
+            }
         }
 
         glEnableVertexAttribArray(ShaderProgram::TEX_COORD_2F_0);
@@ -509,7 +520,7 @@ void TextDrawer::doRender2d(OpenGLContext* oglContext, const MatrixState& matrix
                         vertices[v][c] = pos[c] + corners[v][c];
                     }
                 }
-                if (textDir.dot(cvf::Vec3f::X_AXIS) < 0.9 && textDir.dot(cvf::Vec3f::Y_AXIS) < 0.9)
+                if (m_font->isSdfFont() || (textDir.dot(cvf::Vec3f::X_AXIS) < 0.9 && textDir.dot(cvf::Vec3f::Y_AXIS) < 0.9))
                 {
                     glyph->setMinFilter(Glyph::LINEAR);
                     glyph->setMagFilter(Glyph::LINEAR);

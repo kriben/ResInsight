@@ -168,13 +168,13 @@ static const char fs_GaussianBlur_inl[] =
 "// See also for a discussion of sigma vs kernel size:                                                              \n"
 "// http://theinstructionlimit.com/gaussian-blur-revisited-part-two                                                 \n"
 "// His suggestions for sigma values based on kernel size                                                           \n"
-"//   17-tap : 3.66 – 4.95                                                                                          \n"
-"//   15-tap : 2.85 – 3.34                                                                                          \n"
-"//   13-tap : 2.49 – 2.95                                                                                          \n"
-"//   11-tap : 2.18 – 2.54                                                                                          \n"
-"//    9-tap : 1.8 – 2.12                                                                                           \n"
-"//    7-tap : 1.55 – 1.78                                                                                          \n"
-"//    5-tap : 1.35 – 1.54                                                                                          \n"
+"//   17-tap : 3.66 ï¿½ 4.95                                                                                          \n"
+"//   15-tap : 2.85 ï¿½ 3.34                                                                                          \n"
+"//   13-tap : 2.49 ï¿½ 2.95                                                                                          \n"
+"//   11-tap : 2.18 ï¿½ 2.54                                                                                          \n"
+"//    9-tap : 1.8 ï¿½ 2.12                                                                                           \n"
+"//    7-tap : 1.55 ï¿½ 1.78                                                                                          \n"
+"//    5-tap : 1.35 ï¿½ 1.54                                                                                          \n"
 "                                                                                                                   \n"
 "uniform float u_sigma;   // The sigma value for the gaussian function: higher value means more blur                \n"
 "                         // A good value for 9x9 is around 3 to 5                                                  \n"
@@ -557,6 +557,30 @@ static const char fs_Text_inl[] =
 "void main()                                                                                           \n"
 "{                                                                                                     \n"
 "    float alpha = texture2D(u_texture2D, v_texCoord).a;                                               \n"
+"    gl_FragColor = vec4(u_color, alpha);                                                              \n"
+"}                                                                                                     \n";
+
+
+
+//#############################################################################################################################
+//#############################################################################################################################
+static const char fs_TextSdf_inl[] =
+"                                                                                                      \n"
+"uniform sampler2D u_texture2D;                                                                        \n"
+"uniform vec3 u_color;                                                                                 \n"
+"uniform float u_sdfSmoothing;                                                                         \n"
+"                                                                                                      \n"
+"varying vec2 v_texCoord;                                                                              \n"
+"                                                                                                      \n"
+"//--------------------------------------------------------------------------------------------------  \n"
+"/// Fragment Shader - Text SDF                                                                        \n"
+"//--------------------------------------------------------------------------------------------------  \n"
+"void main()                                                                                           \n"
+"{                                                                                                     \n"
+"    float dist = texture2D(u_texture2D, v_texCoord).a;                                                \n"
+"    float alpha = smoothstep(0.5 - u_sdfSmoothing,                                                    \n"
+"                             0.5 + u_sdfSmoothing,                                                    \n"
+"                             dist);                                                                   \n"
 "    gl_FragColor = vec4(u_color, alpha);                                                              \n"
 "}                                                                                                     \n";
 

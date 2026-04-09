@@ -85,6 +85,7 @@ OpenGLResourceManager::~OpenGLResourceManager()
     CVF_ASSERT(m_oglResources.empty());
 
     CVF_ASSERT(m_textShaderProgram.isNull());
+    CVF_ASSERT(m_sdfTextShaderProgram.isNull());
     CVF_ASSERT(m_nudgeShaderProgram.isNull());
     CVF_ASSERT(m_unlitColorShaderProgram.isNull());
     CVF_ASSERT(m_unlitTextureShaderProgram.isNull());
@@ -366,6 +367,28 @@ ShaderProgram* OpenGLResourceManager::getLinkedTextShaderProgram(OpenGLContext* 
 
 
 //--------------------------------------------------------------------------------------------------
+/// Get ready linked shader program for SDF text drawing
+//--------------------------------------------------------------------------------------------------
+ShaderProgram* OpenGLResourceManager::getLinkedSdfTextShaderProgram(OpenGLContext* oglContext)
+{
+    if (m_sdfTextShaderProgram.isNull())
+    {
+        ShaderProgramGenerator gen("SdfTextShaderProgram", ShaderSourceProvider::instance());
+        gen.addVertexCode(ShaderSourceRepository::vs_MinimalTexture);
+        gen.addFragmentCode(ShaderSourceRepository::fs_TextSdf);
+        m_sdfTextShaderProgram = gen.generate();
+        m_sdfTextShaderProgram->linkProgram(oglContext);
+
+        m_sdfTextShaderProgram->disableUniformTrackingForUniform("u_texture2D");
+        m_sdfTextShaderProgram->disableUniformTrackingForUniform("u_color");
+        m_sdfTextShaderProgram->disableUniformTrackingForUniform("u_sdfSmoothing");
+    }
+
+    return m_sdfTextShaderProgram.p();
+}
+
+
+//--------------------------------------------------------------------------------------------------
 /// Get ready linked shader program for use with 'manual' occlusion query for points
 /// 
 /// Shader program drawing a point size 3 point with a very light gray color. Used with Add blending
@@ -480,6 +503,18 @@ void OpenGLResourceManager::deleteAllShaderPrograms(OpenGLContext* oglContext)
         progToDelete->deleteProgram(oglContext);
     }
 
+    if (m_sdfTextShaderProgram.notNull())
+    {
+        ref<ShaderProgram> progToDelete = m_sdfTextShaderProgram;
+        m_sdfTextShaderProgram = NULL;
+
+        if (progToDelete->isProgramUsed(oglContext))
+        {
+            ShaderProgram::useNoProgram(oglContext);
+        }
+        progToDelete->deleteProgram(oglContext);
+    }
+
     if (m_nudgeShaderProgram.notNull())
     {
         ref<ShaderProgram> progToDelete = m_nudgeShaderProgram;
@@ -582,6 +617,7 @@ bool OpenGLResourceManager::hasAnyOpenGLResources() const
     }
 
     if (m_textShaderProgram.notNull()           ||
+        m_sdfTextShaderProgram.notNull()       ||
         m_nudgeShaderProgram.notNull()          ||
         m_unlitColorShaderProgram.notNull()     ||
         m_unlitTextureShaderProgram.notNull()   ||

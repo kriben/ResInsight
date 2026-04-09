@@ -40,10 +40,7 @@
 #include "cvfTextureImage.h"
 #include "cvfFreeTypeFont.h"
 
-#ifdef WIN32
 #define CVF_USE_FREETYPE_LIB
-#endif
-// Todo: Implement and check on Linux and iOS
 
 #ifdef CVF_USE_FREETYPE_LIB
 #include "cvfBase64.h"
@@ -467,7 +464,7 @@ public:
         version(&major, &minor, &patch);
 
         return String("FreeType %1.%2.%3\n"
-                      "Portions of this software are Copyright © %4\n"
+                      "Portions of this software are Copyright ï¿½ %4\n"
                       "The FreeType Project (www.freetype.org).\n"
                       "All rights reserved.")
                       .arg(major).arg(minor).arg(patch).arg(copyRightYear());

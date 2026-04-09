@@ -1,7 +1,7 @@
 //##################################################################################################
 //
 //   Custom Visualization Core library
-//   Copyright (C) 2011-2013 Ceetron AS
+//   Copyright (C) Ceetron Solutions AS
 //
 //   This library may be used under the terms of either the GNU General Public License or
 //   the GNU Lesser General Public License as follows:
@@ -34,39 +34,38 @@
 //
 //##################################################################################################
 
-
 #pragma once
 
+#include "cvfBase.h"
+#include "cvfFont.h"
 #include "cvfObject.h"
-#include "cvfString.h"
-#include "cvfVector2.h"
 
+namespace cvf
+{
+class SdfFont;
+}
 
-namespace cvf {
-
-class Glyph;
-
+namespace caf
+{
 //==================================================================================================
 //
-// Pure virtual font base class used to generate glyphs for a given character.
+// SDF atlas font wrapper that loads the bundled Droid Sans TTF and provides crisp text at any size.
 //
 //==================================================================================================
-class Font : public Object
+class SdfAtlasFont : public cvf::Font
 {
 public:
-    Font();
-    virtual ~Font();
+    explicit SdfAtlasFont( int pointSize );
+    ~SdfAtlasFont() override;
 
-    virtual const String&   name() const = 0;
-    virtual ref<Glyph>      getGlyph(wchar_t character) = 0;
-    virtual uint            advance(wchar_t character, wchar_t nextCharacter) = 0;
-    virtual bool            isEmpty() = 0;
-    virtual bool            isSdfFont() const { return false; }
+    const cvf::String&   name() const override;
+    cvf::ref<cvf::Glyph> getGlyph( wchar_t character ) override;
+    cvf::uint            advance( wchar_t character, wchar_t nextCharacter ) override;
+    bool                 isEmpty() override;
+    bool                 isSdfFont() const override { return true; }
 
-    float                   lineSpacing();
-
-    Vec2ui                  textExtent(const String& text);        
-
+private:
+    cvf::ref<cvf::SdfFont> m_sdfFont;
 };
 
-} // namespace cvf
+} // namespace caf

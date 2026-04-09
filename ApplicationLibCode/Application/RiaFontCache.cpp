@@ -21,42 +21,19 @@
 #include "RiaGuiApplication.h"
 
 #include "cafAssert.h"
-#include "cafFixedAtlasFont.h"
+#include "cafSdfAtlasFont.h"
 
 #include <cmath>
 
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-caf::FixedAtlasFont::FontSize mapToAtlasFontSize( int pointSize )
-{
-    if ( pointSize >= 6 && pointSize < 8 )
-        return caf::FixedAtlasFont::POINT_SIZE_6;
-    else if ( pointSize >= 8 && pointSize < 10 )
-        return caf::FixedAtlasFont::POINT_SIZE_8;
-    else if ( pointSize >= 10 && pointSize < 12 )
-        return caf::FixedAtlasFont::POINT_SIZE_10;
-    else if ( pointSize >= 12 && pointSize < 14 )
-        return caf::FixedAtlasFont::POINT_SIZE_12;
-    else if ( pointSize >= 14 && pointSize < 16 )
-        return caf::FixedAtlasFont::POINT_SIZE_14;
-    else if ( pointSize >= 16 && pointSize < 20 )
-        return caf::FixedAtlasFont::POINT_SIZE_16;
-    else if ( pointSize >= 20 && pointSize < 28 )
-        return caf::FixedAtlasFont::POINT_SIZE_24;
-
-    return caf::FixedAtlasFont::POINT_SIZE_32;
-}
+std::map<int, cvf::ref<cvf::Font>> RiaFontCache::ms_fonts;
 
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-std::map<caf::FixedAtlasFont::FontSize, cvf::ref<caf::FixedAtlasFont>> RiaFontCache::ms_fonts;
-
-//--------------------------------------------------------------------------------------------------
-///
-//--------------------------------------------------------------------------------------------------
-cvf::ref<caf::FixedAtlasFont> RiaFontCache::getFont( FontSize pointFontSize )
+cvf::ref<cvf::Font> RiaFontCache::getFont( FontSize pointFontSize )
 {
     int pointSize = caf::FontTools::absolutePointSize( pointFontSize );
     return getFont( pointSize );
@@ -65,7 +42,7 @@ cvf::ref<caf::FixedAtlasFont> RiaFontCache::getFont( FontSize pointFontSize )
 //--------------------------------------------------------------------------------------------------
 ///
 //--------------------------------------------------------------------------------------------------
-cvf::ref<caf::FixedAtlasFont> RiaFontCache::getFont( int pointSize )
+cvf::ref<cvf::Font> RiaFontCache::getFont( int pointSize )
 {
     int currentDPI = 96;
     if ( RiaGuiApplication::isRunning() )
@@ -73,17 +50,16 @@ cvf::ref<caf::FixedAtlasFont> RiaFontCache::getFont( int pointSize )
         currentDPI = RiaGuiApplication::applicationResolution();
     }
 
-    // the Fixed Atlas Fonts appear to be assuming a DPI of 96, so we need scaling.
-    double scaling       = currentDPI / 96.0;
-    int    scaledSize    = scaling * pointSize;
-    auto   atlasFontSize = mapToAtlasFontSize( scaledSize );
+    double scaling    = currentDPI / 96.0;
+    int    scaledSize = static_cast<int>( scaling * pointSize );
+    if ( scaledSize < 1 ) scaledSize = 1;
 
-    auto existing_it = ms_fonts.find( atlasFontSize );
+    auto existing_it = ms_fonts.find( scaledSize );
     if ( existing_it == ms_fonts.end() )
     {
-        auto newFont                      = new caf::FixedAtlasFont( atlasFontSize );
+        auto newFont                      = new caf::SdfAtlasFont( scaledSize );
         bool inserted                     = false;
-        std::tie( existing_it, inserted ) = ms_fonts.insert( std::make_pair( atlasFontSize, newFont ) );
+        std::tie( existing_it, inserted ) = ms_fonts.insert( std::make_pair( scaledSize, newFont ) );
         CAF_ASSERT( inserted );
     }
     return existing_it->second;

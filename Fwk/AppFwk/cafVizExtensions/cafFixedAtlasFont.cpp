@@ -8788,8 +8788,9 @@ const char* CAF_FIXED_ATLAS_FONT_12_PT_TEXTURE_IMAGE[] = {
     "////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A/"
     "///AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wL////e////zP///wD///8A//"
     "//AP///wD///8A////AP///wD///8A",
-    "/////////2z///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A/"
-    "///AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wA=" };
+    ( "/////////2z///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///"
+      "8A/"
+      "///AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wA=" ) };
 
 // Texture image block count
 const size_t CAF_FIXED_ATLAS_FONT_12_PT_TEXTURE_IMAGE_BLOCK_COUNT = 1451;
@@ -14953,8 +14954,9 @@ const char* CAF_FIXED_ATLAS_FONT_14_PT_TEXTURE_IMAGE[] = {
     "////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A/"
     "///AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A//"
     "///////7D///8A////AP///wD///8A",
-    "////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A/"
-    "///AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wA=" };
+    ( "////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wD///"
+      "8A/"
+      "///AP///wD///8A////AP///wD///8A////AP///wD///8A////AP///wA=" ) };
 
 // Texture image block count
 const size_t CAF_FIXED_ATLAS_FONT_14_PT_TEXTURE_IMAGE_BLOCK_COUNT = 2027;

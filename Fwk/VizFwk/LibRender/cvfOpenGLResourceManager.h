@@ -79,6 +79,7 @@ public:
     ref<OglRcFramebuffer>           createOglRcFramebuffer(OpenGLContext* oglContext);
 
     ShaderProgram*                  getLinkedTextShaderProgram(OpenGLContext* oglContext);
+    ShaderProgram*                  getLinkedSdfTextShaderProgram(OpenGLContext* oglContext);
     ShaderProgram*                  getLinkedNudgeShaderProgram(OpenGLContext* oglContext);
     ShaderProgram*                  getLinkedUnlitColorShaderProgram(OpenGLContext* oglContext);
     ShaderProgram*                  getLinkedUnlitTextureShaderProgram(OpenGLContext* oglContext);
@@ -109,6 +110,7 @@ private:
     OglResourcesList        m_oglResources;
 
     ref<ShaderProgram>      m_textShaderProgram;
+    ref<ShaderProgram>      m_sdfTextShaderProgram;
     ref<ShaderProgram>      m_nudgeShaderProgram;
     ref<ShaderProgram>      m_unlitColorShaderProgram;
     ref<ShaderProgram>      m_unlitTextureShaderProgram;
